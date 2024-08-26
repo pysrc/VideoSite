@@ -30,6 +30,9 @@ public class CacheService {
             CacheService.globalCache = JSONObject.parseObject(s, GlobalCache.class);
         } catch (FileNotFoundException e) {
             CacheService.globalCache = new GlobalCache();
+            DocBase base = new DocBase();
+            base.setDocs(new ArrayList<>());
+            CacheService.globalCache.setData(base);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
