@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频播放</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <script src="hls.js"></script>
+    <script>
+        // var baseUrl = "http://127.0.0.1:8080";
+        var baseUrl = "";
+    </script>
+    <script>
+        // 获取URL中的视频参数
+        var group = null;
+        var filename = null;
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            group = urlParams.get('group');
+            filename = urlParams.get('filename');
+            document.getElementById("show-title").innerHTML = filename;
+        }
+    </script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">工具栏</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">主页</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="upload.html">上传</a>
+                </li>
+            </ul>
+            </div>
+        </div>
+    </nav>
+    <h1 id="show-title" class="text-center mb-4">视频播放</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <video controls class="w-100" id="videoPlayer">
+                <!-- 视频来源将在JavaScript中动态设置 -->
+            </video>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 设置视频源
+    init();
+    if (Hls.isSupported()) {
+        var video = document.getElementById('videoPlayer');  
+        var hls = new Hls();  
+        hls.loadSource(`${baseUrl}/${group}/${filename}/desc.m3u8`);  
+        hls.attachMedia(video);  
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        });  
+    }
+</script>
+
+<!-- 引入Bootstrap JS和依赖 -->
+<script src="bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="jquery-3.7.1.min.js"></script>
+
+    <style>
+.load-more-container {
+  text-align: center;
+  margin-top: 40px;
+}
+    </style>
+</head>
+<script>
+    // var baseUrl = "http://127.0.0.1:8080";
+    var baseUrl = "";
+</script>
+<body>
+    <div class="container mt-5">
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">工具栏</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">主页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="upload.html">上传</a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" onclick="refresh()">刷新索引</button>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          分组
+                        </a>
+                        <ul id="group" class="dropdown-menu">
+                        </ul>
+                    </li>
+                </ul>
+                <div class="d-flex" role="search">
+                    <input id="search-input" class="form-control me-2" type="search" placeholder="关键字" aria-label="Search">
+                    <button id="search-go" class="btn btn-outline-success" onclick="search()">GO</button>
+                </div>
+                </div>
+            </div>
+        </nav>
+        <h1 class="text-center mb-4">视频列表</h1>
+        <div id="list"></div>
+        <div class="load-more-container">
+            <button class="btn btn-outline-success" onclick="loadMore()">加载更多</button>
+        </div>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        var videoList = [];
+        var currentShowNum = 9;
+        function initList(pgroup, data, level) {
+            if(data.group) {
+                for (let index = 0; index < data.docs.length; index++) {
+                    if(level === 0) {
+                        initList("", data.docs[index], level + 1);
+                    } else if(level === 1) {
+                        initList(data.name, data.docs[index], level + 1);
+                    }else {
+                        initList(pgroup + "/" + data.name, data.docs[index], level + 1);
+                    }
+                }
+            } else {
+                videoList.push({
+                    group: pgroup,
+                    filename: data.name
+                });
+            }
+        }
+        function show() {
+            var html = "";
+            var group = getGroup();
+            if(videoList) {
+                var gps = new Set();
+                var batch = 3;
+                var count = 0;
+                for(var i=0; i<videoList.length; i+=batch) {
+                    var rowhtml = '<div class="row">';
+                    for(var k=0; k<batch && k + i < videoList.length; k++) {
+                        var d = videoList[i + k];
+                        var cpg = "";
+                        if(group === "/") {
+                            cpg = d["group"];
+                        } else {
+                            cpg = getGroup() + "/" +d["group"];
+                        }
+                        // 只添加子一级标签
+                        rowhtml+=`<div class="col-md-4 col-sm-6 mb-4">`;
+                        rowhtml+=`<div class="card">`;
+                        rowhtml+=`<a href="/play_video.html?group=${cpg}&filename=${d["filename"]}">`;
+                        rowhtml+=`<img src="${baseUrl}/${cpg}/${d["filename"]}/desc.jpg" class="card-img-top" alt="${d["filename"]}">`;
+                        rowhtml+=`</a>`;
+                        rowhtml+=`<div class="card-body">`;
+                        rowhtml+=`<h5 class="card-title">${d["filename"]}</h5>`;
+                        rowhtml+='</div>';
+                        rowhtml+='</div>';
+                        rowhtml+='</div>';
+                        count++;
+                        if(count >= currentShowNum) {
+                            break;
+                        }
+                    }
+                    rowhtml+='</div>';
+                    html += rowhtml;
+                    if(count >= currentShowNum) {
+                        break;
+                    }
+                }
+                $("#list").html(html);
+                // 分组设置
+                videoList.forEach(d=>{
+                    var _ps = d["group"].split("/");
+                    gps.add(_ps[0]);
+                });
+                var gphtml = "";
+                var cpg = "";
+                if(group !== "/") {
+                    cpg = getGroup() + "/";
+                }
+                gps.forEach(g=>{
+                    gphtml += `<li><a class="dropdown-item" href="index.html?group=${cpg}${g}">${g}</a></li>`;
+                });
+                $("#group").html(gphtml);
+            }
+        }
+        function getGroup() {
+            var group = urlParams.get('group');
+            if(!group) {
+                group = "/";
+            }
+            return group;
+        }
+        function search() {
+            var q = $("#search-input").val();
+            var group = getGroup();
+            videoList = [];
+            $.ajax({
+                url: `${baseUrl}/videos?group=${group}`,
+                success: function(result) {
+                    var data = result.data;
+                    initList(group, data, 0);
+                    var t = [];
+                    for (let index = 0; index < videoList.length; index++) {
+                        const el = videoList[index];
+                        if(el.filename.indexOf(q) != -1) {
+                            t.push(el);
+                        }
+                    }
+                    videoList = t;
+                    show();
+                }
+            });
+        }
+        search();
+
+        function refresh() {
+            if(confirm("是否刷新？")) {
+                videoList = [];
+                var group = getGroup();
+                $.ajax({
+                    url: `${baseUrl}/refresh`,
+                    success: function(result) {
+                        var data = result.data;
+                        initList(group, data, 0);
+                        show();
+                    }
+                });
+            }
+        }
+
+        document.getElementById("search-input").addEventListener("keydown", function(event){
+            if (event.keyCode === 13) {
+                search();
+            }
+        });
+
+        function loadMore() {
+            currentShowNum += 9;
+            search();
+        }
+
+    </script>
+</body>
+</html>
